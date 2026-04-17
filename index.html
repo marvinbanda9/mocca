@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>QR Restaurant Pro</title>
+
+<style>
+/* RESET */
+body {
+  margin:0;
+  font-family: Arial;
+  overflow-x:hidden;
+}
+
+/* 🎥 VIDEO BACKGROUND */
+#bgVideo {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:-2;
+}
+
+/* DARK OVERLAY */
+.overlay {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.55);
+  z-index:-1;
+}
+
+/* HEADER */
+header {
+  background:rgba(192,57,43,0.9);
+  color:white;
+  text-align:center;
+  padding:12px;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+/* NOTIFICATION */
+.banner {
+  display:none;
+  background:#2ecc71;
+  color:white;
+  text-align:center;
+  padding:10px;
+  position:sticky;
+  top:48px;
+  z-index:10;
+}
+
+/* NAV */
+nav {
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  display:flex;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter: blur(6px);
+}
+
+nav button {
+  flex:1;
+  padding:12px;
+  color:white;
+  background:none;
+  border:none;
+  font-size:12px;
+}
+
+/* PAGES */
+.page {
+  display:none;
+  padding:12px;
+  padding-bottom:90px;
+}
+.active { display:block; }
+
+/* GLASS CARDS */
+.box, .food, .cart {
+  background:rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  border-radius:14px;
+}
+
+/* FOOD */
+.food {
+  display:flex;
+  gap:10px;
+  padding:10px;
+  margin-bottom:10px;
+  align-items:center;
+}
+
+.food img {
+  width:70px;
+  height:70px;
+  border-radius:10px;
+  object-fit:cover;
+}
+
+/* BUTTONS */
+button {
+  border:none;
+  border-radius:8px;
+  padding:8px 10px;
+}
+
+.add { background:#27ae60; color:white; }
+
+.primary {
+  background:#2980b9;
+  color:white;
+  width:100%;
+  padding:12px;
+  font-size:16px;
+}
+
+/* INPUTS */
+input, select, textarea {
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  border-radius:10px;
+  border:1px solid #ddd;
+}
+
+/* CART */
+.cart {
+  padding:10px;
+  margin-top:10px;
+}
+
+/* STAR */
+.stars span {
+  font-size:22px;
+  cursor:pointer;
+  color:#f1c40f;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🎥 BACKGROUND VIDEO -->
+<video autoplay muted loop playsinline id="bgVideo">
+  <source src="https://cdn.coverr.co/videos/coverr-a-busy-restaurant-kitchen-8576/1080p.mp4" type="video/mp4">
+</video>
+
+<div class="overlay"></div>
+
+<header>
+<h3>🍽️ QR Restaurant Pro</h3>
+<small id="tableLabel"></small>
+</header>
+
+<div id="banner" class="banner"></div>
+
+<!-- MENU -->
+<div id="menu" class="page active">
+
+<h3 style="color:white;">🍔 Menu</h3>
+
+<select id="category" onchange="renderMenu()">
+  <option value="all">All</option>
+  <option value="breakfast">🍳 Breakfast</option>
+  <option value="lunch">🍽️ Lunch</option>
+  <option value="local">🥘 Local</option>
+  <option value="drinks">🥤 Drinks</option>
+</select>
+
+<div id="menuBox"></div>
+
+<div class="cart">
+<h4>🛒 Cart</h4>
+<div id="cartBox">Empty</div>
+<h4>Total: $<span id="total">0</span></h4>
+<button class="primary" onclick="placeOrder()">Place Order</button>
+</div>
+
+</div>
+
+<!-- RESERVATION -->
+<div id="reserve" class="page">
+
+<h3 style="color:white;">🪑 Reservations</h3>
+
+<div class="box">
+<input id="rname" placeholder="Name">
+<input type="date" id="rdate">
+<input type="time" id="rtime">
+<input type="number" id="rguests" placeholder="Guests">
+
+<button class="primary" onclick="bookTable()">Book Table</button>
+</div>
+
+<div id="resBox"></div>
+
+</div>
+
+<!-- HISTORY -->
+<div id="history" class="page">
+<h3 style="color:white;">📜 History</h3>
+
+<div class="box">
+Spent: $<span id="spent">0</span><br>
+Vouchers: <span id="vouchers">0</span>
+</div>
+
+<div id="historyBox"></div>
+</div>
+
+<!-- FEEDBACK -->
+<div id="feedback" class="page">
+
+<h3 style="color:white;">⭐ Feedback & Tips</h3>
+
+<div class="box">
+<textarea id="comment" placeholder="Your feedback..."></textarea>
+<input id="tip" type="number" placeholder="Tip amount ($)">
+<button class="primary" onclick="sendFeedback()">Send</button>
+</div>
+
+<div id="fbBox"></div>
+
+</div>
+
+<!-- NAV -->
+<nav>
+<button onclick="show('menu')">Menu</button>
+<button onclick="show('reserve')">Reserve</button>
+<button onclick="show('history')">History</button>
+<button onclick="show('feedback')">Feedback</button>
+</nav>
+
+<script>
+
+let cart=[];
+let total=0;
+
+const table=new URLSearchParams(location.search).get("table")||"0";
+document.getElementById("tableLabel").innerText="Table "+table;
+
+/* MENU */
+const menu=[
+ {n:"Egg Sandwich",p:3,c:"breakfast",i:"https://source.unsplash.com/80x80/?sandwich"},
+ {n:"Burger",p:5,c:"lunch",i:"https://source.unsplash.com/80x80/?burger"},
+ {n:"Pizza",p:6,c:"lunch",i:"https://source.unsplash.com/80x80/?pizza"},
+ {n:"Matoke",p:4,c:"local",i:"https://source.unsplash.com/80x80/?plantain"},
+ {n:"Soda",p:1,c:"drinks",i:"https://source.unsplash.com/80x80/?soda"}
+];
+
+/* NOTIFY */
+function notify(t){
+ let b=document.getElementById("banner");
+ b.innerText=t;
+ b.style.display="block";
+ setTimeout(()=>b.style.display="none",2000);
+}
+
+/* NAV */
+function show(p){
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+ document.getElementById(p).classList.add('active');
+ loadAll();
+}
+
+/* MENU */
+function renderMenu(){
+ let c=document.getElementById("category").value;
+ let f=menu.filter(x=>c==="all"||x.c===c);
+
+ document.getElementById("menuBox").innerHTML=
+ f.map(x=>`
+  <div class="food">
+    <img src="${x.i}">
+    <div style="flex:1">
+      <b>${x.n}</b><br>
+      $${x.p}
+    </div>
+    <button class="add" onclick="add('${x.n}',${x.p})">+</button>
+  </div>
+ `).join("");
+}
+
+/* CART */
+function add(n,p){
+ cart.push({n,p});
+ total+=p;
+ updateCart();
+}
+
+function updateCart(){
+ document.getElementById("cartBox").innerHTML=
+ cart.length?cart.map(x=>x.n).join("<br>"):"Empty";
+
+ document.getElementById("total").innerText=total;
+}
+
+/* ORDER */
+function placeOrder(){
+ if(!cart.length)return;
+
+ let h=JSON.parse(localStorage.getItem("history")||"[]");
+
+ h.push({
+  table,
+  items:cart,
+  total,
+  time:new Date().toLocaleTimeString()
+ });
+
+ localStorage.setItem("history",JSON.stringify(h));
+
+ cart=[]; total=0;
+ updateCart();
+
+ notify("Order placed ✔");
+}
+
+/* RESERVATION */
+function bookTable(){
+ let r=JSON.parse(localStorage.getItem("reservations")||"[]");
+
+ r.push({
+  name:document.getElementById("rname").value,
+  date:document.getElementById("rdate").value,
+  time:document.getElementById("rtime").value,
+  guests:document.getElementById("rguests").value,
+  id:Date.now()
+ });
+
+ localStorage.setItem("reservations",JSON.stringify(r));
+
+ notify("Table booked ✔");
+ loadReservations();
+}
+
+function loadReservations(){
+ let r=JSON.parse(localStorage.getItem("reservations")||"[]");
+
+ document.getElementById("resBox").innerHTML=
+ r.map(x=>`
+  <div class="box">
+   ${x.name}<br>
+   ${x.date} ${x.time}<br>
+   Guests: ${x.guests}
+  </div>
+ `).join("");
+}
+
+/* HISTORY */
+function loadHistory(){
+ let h=JSON.parse(localStorage.getItem("history")||"[]");
+
+ let spent=h.reduce((s,x)=>s+x.total,0);
+ document.getElementById("spent").innerText=spent.toFixed(2);
+ document.getElementById("vouchers").innerText=Math.floor(spent/20);
+
+ document.getElementById("historyBox").innerHTML=
+ h.map(x=>`
+  <div class="box">
+   Table ${x.table}<br>
+   ${x.items.map(i=>i.n).join(", ")}<br>
+   $${x.total}
+  </div>
+ `).join("");
+}
+
+/* FEEDBACK */
+function sendFeedback(){
+ let f=JSON.parse(localStorage.getItem("feedback")||"[]");
+
+ f.push({
+  table,
+  comment:document.getElementById("comment").value,
+  tip:document.getElementById("tip").value||0,
+  time:new Date().toLocaleTimeString()
+ });
+
+ localStorage.setItem("feedback",JSON.stringify(f));
+
+ document.getElementById("comment").value="";
+ document.getElementById("tip").value="";
+
+ notify("Thanks ❤️");
+}
+
+/* LOAD */
+function loadAll(){
+ renderMenu();
+ loadHistory();
+ loadReservations();
+}
+
+setInterval(loadAll,3000);
+
+loadAll();
+updateCart();
+
+</script>
+
+</body>
+</html>
