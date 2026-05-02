@@ -147,6 +147,115 @@ input, select, textarea {
   cursor:pointer;
   color:#f1c40f;
 }
+
+<!-- ADD THIS CSS inside your <style> -->
+
+/* CLICKABLE FOOD IMAGE */
+.food img{
+  width:70px;
+  height:70px;
+  border-radius:10px;
+  object-fit:cover;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.food img:hover{
+  transform:scale(1.06);
+}
+
+/* IMAGE POPUP */
+#imgPopup{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.85);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+}
+
+#imgPopup img{
+  max-width:92%;
+  max-height:85%;
+  border-radius:16px;
+  box-shadow:0 0 25px rgba(255,255,255,0.25);
+}
+
+#imgPopup span{
+  position:absolute;
+  top:15px;
+  right:20px;
+  color:white;
+  font-size:35px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+<!-- ADD this CSS inside your <style> -->
+
+#imgPopup{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.88);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+}
+
+#imgPopup img{
+  max-width:92%;
+  max-height:84%;
+  border-radius:16px;
+  box-shadow:0 0 25px rgba(255,255,255,0.25);
+}
+
+.closePop{
+  position:absolute;
+  top:12px;
+  right:18px;
+  color:#fff;
+  font-size:38px;
+  cursor:pointer;
+  z-index:3;
+}
+
+/* PREV / NEXT BUTTONS */
+.navBtn{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:48px;
+  height:48px;
+  border:none;
+  border-radius:50%;
+  background:rgba(255,255,255,0.18);
+  color:#fff;
+  font-size:34px;
+  cursor:pointer;
+  backdrop-filter:blur(5px);
+  z-index:2;
+}
+
+.prevBtn{
+  left:12px;
+}
+
+.nextBtn{
+  right:12px;
+}
+
+.navBtn:hover{
+  background:rgba(255,255,255,0.30);
+}
+
 </style>
 </head>
 
@@ -242,173 +351,300 @@ Vouchers: <span id="vouchers">0</span>
 <button onclick="show('history')">History</button>
 <button onclick="show('feedback')">Feedback</button>
 </nav>
-
 <script>
+/* ADD these variables near top of script */
 
-let cart=[];
-let total=0;
+let currentImageIndex = 0;
+let cart = [];
+let total = 0;
 
-const table=new URLSearchParams(location.search).get("table")||"0";
-document.getElementById("tableLabel").innerText="Table "+table;
+const table = new URLSearchParams(window.location.search).get("table") || "0";
+document.getElementById("tableLabel").innerText = "Table " + table;
 
-/* MENU */
-const menu=[
- {n:"Egg Sandwich",p:3,c:"breakfast",i:"https://source.unsplash.com/80x80/?sandwich"},
- {n:"Burger",p:5,c:"lunch",i:"https://source.unsplash.com/80x80/?burger"},
- {n:"Pizza",p:6,c:"lunch",i:"https://source.unsplash.com/80x80/?pizza"},
- {n:"Matoke",p:4,c:"local",i:"https://source.unsplash.com/80x80/?plantain"},
- {n:"Soda",p:1,c:"drinks",i:"https://source.unsplash.com/80x80/?soda"}
+/* MENU WITH WORKING IMAGE URLS */
+const menu = [
+ {
+   n:"Egg Sandwich",
+   p:3,
+   c:"breakfast",
+   i:"https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=200"
+ },
+ {
+   n:"Burger",
+   p:5,
+   c:"lunch",
+   i:"https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200"
+ },
+ {
+   n:"Pizza",
+   p:6,
+   c:"lunch",
+   i:"https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=200"
+ },
+ {
+   n:"Matoke",
+   p:4,
+   c:"local",
+   i:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200"
+ },
+ {
+   n:"Soda",
+   p:1,
+   c:"drinks",
+   i:"https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200"
+ }
 ];
 
 /* NOTIFY */
 function notify(t){
- let b=document.getElementById("banner");
- b.innerText=t;
- b.style.display="block";
- setTimeout(()=>b.style.display="none",2000);
+ let b = document.getElementById("banner");
+ b.innerText = t;
+ b.style.display = "block";
+ setTimeout(() => {
+   b.style.display = "none";
+ }, 2000);
 }
 
-/* NAV */
+/* NAVIGATION */
 function show(p){
- document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
- document.getElementById(p).classList.add('active');
+ document.querySelectorAll(".page").forEach(x => x.classList.remove("active"));
+ document.getElementById(p).classList.add("active");
  loadAll();
 }
 
-/* MENU */
-function renderMenu(){
- let c=document.getElementById("category").value;
- let f=menu.filter(x=>c==="all"||x.c===c);
 
- document.getElementById("menuBox").innerHTML=
- f.map(x=>`
-  <div class="food">
-    <img src="${x.i}">
-    <div style="flex:1">
-      <b>${x.n}</b><br>
-      $${x.p}
-    </div>
-    <button class="add" onclick="add('${x.n}',${x.p})">+</button>
-  </div>
+
+
+/* REPLACE ONLY renderMenu() WITH THIS */
+
+function renderMenu(){
+
+ let c = document.getElementById("category").value;
+
+ let filtered = menu.filter(x => c === "all" || x.c === c);
+
+ document.getElementById("menuBox").innerHTML =
+ filtered.map(x => `
+   <div class="food">
+
+     <img 
+       src="${x.i}" 
+       alt="${x.n}"
+       onclick="openImage('${x.i}')"
+       onerror="this.src='https://via.placeholder.com/80?text=Food'"
+     >
+
+     <div style="flex:1">
+       <b>${x.n}</b><br>
+       $${x.p}
+     </div>
+
+     <button class="add" onclick="add('${x.n}',${x.p})">+</button>
+
+   </div>
  `).join("");
+
 }
+
+/* ADD these functions inside script */
+
+function prevImage(){
+
+ currentImageIndex--;
+
+ if(currentImageIndex < 0){
+   currentImageIndex = menu.length - 1;
+ }
+
+ document.getElementById("bigImg").src = menu[currentImageIndex].i;
+}
+
+function nextImage(){
+
+ currentImageIndex++;
+
+ if(currentImageIndex >= menu.length){
+   currentImageIndex = 0;
+ }
+
+ document.getElementById("bigImg").src = menu[currentImageIndex].i;
+}
+
+function closeImage(){
+ document.getElementById("imgPopup").style.display = "none";
+}
+
+/* REPLACE openImage() with this */
+
+function openImage(src){
+
+ currentImageIndex = menu.findIndex(x => x.i === src);
+
+ if(currentImageIndex < 0) currentImageIndex = 0;
+
+ document.getElementById("bigImg").src = menu[currentImageIndex].i;
+ document.getElementById("imgPopup").style.display = "flex";
+}
+function closeImage(){
+ document.getElementById("imgPopup").style.display = "none";
+}
+
+
+
+
+
+
+
 
 /* CART */
 function add(n,p){
  cart.push({n,p});
- total+=p;
+ total += p;
  updateCart();
+ notify(n + " added");
 }
 
 function updateCart(){
- document.getElementById("cartBox").innerHTML=
- cart.length?cart.map(x=>x.n).join("<br>"):"Empty";
+ document.getElementById("cartBox").innerHTML =
+ cart.length
+ ? cart.map(x => x.n).join("<br>")
+ : "Empty";
 
- document.getElementById("total").innerText=total;
+ document.getElementById("total").innerText = total.toFixed(2);
 }
 
-/* ORDER */
+/* PLACE ORDER */
 function placeOrder(){
- if(!cart.length)return;
 
- let h=JSON.parse(localStorage.getItem("history")||"[]");
+ if(cart.length === 0){
+   notify("Cart is empty");
+   return;
+ }
+
+ let h = JSON.parse(localStorage.getItem("history") || "[]");
 
  h.push({
-  table,
-  items:cart,
-  total,
-  time:new Date().toLocaleTimeString()
+   table,
+   items: cart,
+   total,
+   time: new Date().toLocaleTimeString()
  });
 
- localStorage.setItem("history",JSON.stringify(h));
+ localStorage.setItem("history", JSON.stringify(h));
 
- cart=[]; total=0;
+ cart = [];
+ total = 0;
  updateCart();
 
  notify("Order placed ✔");
 }
 
-/* RESERVATION */
+/* BOOK TABLE */
 function bookTable(){
- let r=JSON.parse(localStorage.getItem("reservations")||"[]");
+
+ let r = JSON.parse(localStorage.getItem("reservations") || "[]");
 
  r.push({
-  name:document.getElementById("rname").value,
-  date:document.getElementById("rdate").value,
-  time:document.getElementById("rtime").value,
-  guests:document.getElementById("rguests").value,
-  id:Date.now()
+   name: document.getElementById("rname").value,
+   date: document.getElementById("rdate").value,
+   time: document.getElementById("rtime").value,
+   guests: document.getElementById("rguests").value,
+   id: Date.now()
  });
 
- localStorage.setItem("reservations",JSON.stringify(r));
+ localStorage.setItem("reservations", JSON.stringify(r));
 
  notify("Table booked ✔");
  loadReservations();
 }
 
+/* LOAD BOOKINGS */
 function loadReservations(){
- let r=JSON.parse(localStorage.getItem("reservations")||"[]");
 
- document.getElementById("resBox").innerHTML=
- r.map(x=>`
-  <div class="box">
-   ${x.name}<br>
-   ${x.date} ${x.time}<br>
-   Guests: ${x.guests}
-  </div>
+ let r = JSON.parse(localStorage.getItem("reservations") || "[]");
+
+ document.getElementById("resBox").innerHTML =
+ r.map(x => `
+   <div class="box">
+     ${x.name}<br>
+     ${x.date} ${x.time}<br>
+     Guests: ${x.guests}
+   </div>
  `).join("");
 }
 
 /* HISTORY */
 function loadHistory(){
- let h=JSON.parse(localStorage.getItem("history")||"[]");
 
- let spent=h.reduce((s,x)=>s+x.total,0);
- document.getElementById("spent").innerText=spent.toFixed(2);
- document.getElementById("vouchers").innerText=Math.floor(spent/20);
+ let h = JSON.parse(localStorage.getItem("history") || "[]");
 
- document.getElementById("historyBox").innerHTML=
- h.map(x=>`
-  <div class="box">
-   Table ${x.table}<br>
-   ${x.items.map(i=>i.n).join(", ")}<br>
-   $${x.total}
-  </div>
+ let spent = h.reduce((s,x) => s + x.total, 0);
+
+ document.getElementById("spent").innerText = spent.toFixed(2);
+ document.getElementById("vouchers").innerText = Math.floor(spent / 20);
+
+ document.getElementById("historyBox").innerHTML =
+ h.map(x => `
+   <div class="box">
+     Table ${x.table}<br>
+     ${x.items.map(i => i.n).join(", ")}<br>
+     $${x.total}
+   </div>
  `).join("");
 }
 
 /* FEEDBACK */
 function sendFeedback(){
- let f=JSON.parse(localStorage.getItem("feedback")||"[]");
+
+ let f = JSON.parse(localStorage.getItem("feedback") || "[]");
 
  f.push({
-  table,
-  comment:document.getElementById("comment").value,
-  tip:document.getElementById("tip").value||0,
-  time:new Date().toLocaleTimeString()
+   table,
+   comment: document.getElementById("comment").value,
+   tip: document.getElementById("tip").value || 0,
+   time: new Date().toLocaleTimeString()
  });
 
- localStorage.setItem("feedback",JSON.stringify(f));
+ localStorage.setItem("feedback", JSON.stringify(f));
 
- document.getElementById("comment").value="";
- document.getElementById("tip").value="";
+ document.getElementById("comment").value = "";
+ document.getElementById("tip").value = "";
 
  notify("Thanks ❤️");
 }
 
-/* LOAD */
+/* LOAD ALL */
 function loadAll(){
  renderMenu();
  loadHistory();
  loadReservations();
 }
 
-setInterval(loadAll,3000);
-
+/* START */
 loadAll();
 updateCart();
+setInterval(loadAll, 3000);
 
 </script>
 
+<!-- ADD THIS just before </body> -->
+
+<!-- REPLACE your popup HTML with this -->
+
+<!-- REPLACE popup HTML with this -->
+
+<div id="imgPopup">
+
+  <span class="closePop" onclick="closeImage()">&times;</span>
+
+  <button class="navBtn prevBtn" onclick="prevImage()">❮</button>
+
+  <img id="bigImg">
+
+  <div id="imgPrice"></div>
+
+  <button class="navBtn nextBtn" onclick="nextImage()">❯</button>
+
+</div>
 </body>
 </html>
